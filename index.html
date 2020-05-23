@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<title>The Great Berate Schedule</title>
+		<link rel="shortcut icon" href="favicon.png" type="image/png">
+		<script src="moment.js"></script>
+		<script src="moment-timezone.js"></script>
+		<style>
+			html, body {
+				height: calc(100% - 10px);
+				margin: 5px;
+			}
+
+			body {
+				display: flex;
+				flex-direction: column;
+				row-gap: 10px;
+
+				background: purple;
+				
+				font-size: 25px;
+				font-family: sans-serif;
+			}
+
+			body > div {
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				flex-grow: 1;
+
+				background: white;
+				padding: 15px;
+			}
+
+			.hidden {
+				display: none;
+			}
+
+			.status {
+				font-size: 200%;
+			}
+
+			.countdown {
+				text-align: center;
+			}
+
+			.clock {
+				font-size: 200%;
+			}
+
+			table {
+				border-collapse: collapse;
+			}
+
+			td, th {
+				padding: 5px 10px;
+				border: 1px solid black;
+			}
+
+			tr {
+				transition: background-color 0.5s;
+			}
+			
+			tr.current {
+				background: rgba(255, 255, 0, 0.5);
+			}
+
+			.live-now {
+				display: flex;
+				flex-direction: column;
+				text-align: center;
+			}
+
+			.live-now > div {
+				display: none;
+			}
+
+			.live-now > div.live {
+				display: unset;
+			}
+
+			.live-now > div:not(:first-child) {
+				margin-top: 5px;
+			}
+
+			.live-badge {
+				color: white;
+				background: red;
+				border-radius: 10px;
+				padding: 2px 5px;
+			}
+
+			.social {
+				column-gap: 20px;
+			}
+
+			.social img {
+				width: 64px;
+				height: 64px;
+			}
+		</style>
+    </head>
+    <body>
+		<div class="status">
+			<div class="countdown">
+				<div class="clock">00:00:00</div>
+				<div>until the next stream.</div>
+			</div>
+			<div class="live-now">
+				<div data-channel="main">The <a href="https://www.youtube.com/TheGreatBerate/live">main channel</a> is <span class="live-badge">LIVE</span> now!</div>
+				<div data-channel="puppy">Silly Puppy's <a href="https://www.twitch.tv/SillyPuppy0218">channel</a> is <span class="live-badge">LIVE</span> now!</div>
+			</div>
+		</div>
+		<div>
+			<table>
+				<tr><th>Day</th><th>Time</th><th>Crew</th><th>Game</th></tr>
+			</table>
+		</div>
+		<div class="social">
+			<a href="https://www.youtube.com/TheGreatBerate"><img src="icons/youtube.png"/></a>
+			<a href="https://www.twitch.tv/SillyPuppy0218"><img src="icons/twitch.png"/></a>
+			<a href="https://discord.gg/qRMNGGZ"><img src="icons/discord.png"/></a>
+		</div>
+		<div><i>All times are shown in <span class="timezone">PT</span>.</i></div>
+		
+		<script>
+			const $ = selector => document.querySelector(selector);
+			const $$ = selector => Array.from(document.querySelectorAll(selector));
+
+			const scheduleURL = "https://tgb-schedule-server.glitch.me/schedule";
+			const statusURL = "https://tgb-schedule-server.glitch.me/status";
+
+			const offset = new Date().getTimezoneOffset() / -60;
+			const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+			$(".timezone").textContent = `${timezone} (UTC${offset})`;
+
+			fetch(scheduleURL)
+				.then(response => response.json())
+				.then(schedule => {
+					const table = $("table tbody");
+
+					for (const row of schedule) {
+						const rowElement = document.createElement("tr");
+						for (const cell of row) {
+							const cellElement = document.createElement("td");
+							cellElement.textContent = cell;
+							rowElement.append(cellElement);
+						}
+
+						table.append(rowElement);
+					}
+
+					onScheduleLoaded();
+				});
+
+			function onScheduleLoaded() {
+				const schedule = [];
+				for (const row of $$("table tr").splice(1)) {
+					const matches = /(\d{1,2}):00 ([AP]M)/.exec(row.children[1].textContent);
+					if (matches == null)
+						continue;
+	
+					const hours = parseInt(matches[1]) + (matches[2] == "PM" && matches[1] !== "12" ? 12 : 0);
+	
+					schedule.push({
+						row: row,
+						dayCell: row.children[0],
+						hoursCell: row.children[1],
+						time: moment().tz("America/Los_Angeles").day(row.children[0].textContent).startOf("day").add(hours, "h").tz(timezone)
+					});
+				}
+	
+				for (const event of schedule) {
+					event.dayCell.textContent = event.time.format("dddd");
+					event.hoursCell.textContent = event.time.format("h A");
+				}
+	
+				const countdown = $(".countdown");
+				const clock = $(".clock");
+				let currentEvent;
+				let anyoneLive = false;
+				function updateClock() {
+					if (anyoneLive)
+						return;
+
+					for (const event of schedule) {
+						const difference = event.time.diff(moment());
+						if (difference >= 0) {
+							const duration = moment.duration(difference);
+							clock.textContent = [duration.hours(), duration.minutes(), duration.seconds()].map(number => number.toString().padStart(2, "0")).join(":");
+	
+							if (currentEvent != event) {
+								if (currentEvent != null) {
+									currentEvent.row.classList.remove("current");
+								}
+	
+								currentEvent = event;
+								currentEvent.row.classList.add("current");
+							}
+	
+							break;
+						}
+					}
+				}
+	
+				setInterval(updateClock, 1000);
+				updateClock();
+
+				const status = $(".status");
+				const channels = $$(".live-now > div");
+				function updateStatus() {
+					fetch(statusURL)
+						.then(response => response.json())
+						.then(statusJSON => {
+							anyoneLive = false;
+							for (const channelElement of channels) {
+								//channelElement.classList.toggle("live", statusJSON[channelElement.dataset.channel]);
+								//anyoneLive |= statusJSON[channelElement.dataset.channel];
+							}
+
+							countdown.classList.toggle("hidden", anyoneLive);
+						})
+				}
+
+				setInterval(updateStatus, 60 * 1000);
+				updateStatus();
+			}
+		</script>
+    </body>
+</html>
