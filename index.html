@@ -8,30 +8,53 @@
 		<script src="moment.js"></script>
 		<script src="moment-timezone.js"></script>
 		<style>
+			@font-face {
+				font-family: 'Bahnschrift';
+				font-style: normal;
+				font-weight: normal;
+				src: local('Bahnschrift'), url('bahnschrift.ttf') format('ttf');
+			}
+
 			html, body {
-				height: calc(100% - 10px);
-				margin: 5px;
+				height: 100%;
 			}
 
 			body {
-				display: flex;
-				flex-direction: column;
-				row-gap: 10px;
+				margin: 0;
 
-				background: purple;
+				display: grid;
+				grid-template-rows: auto 1fr;
+
+				background: #6e0070;
+				color: white;
 				
-				font-size: 25px;
-				font-family: sans-serif;
+				font-family: 'Bahnschrift', sans-serif;
+				line-height: 1;
 			}
 
-			body > div {
+			a {
+				color: #fa00ff;
+			}
+
+			.main {
+				margin: 10px;
+
+				display: grid;
+				row-gap: 10px;
+			}
+
+			.main > div {
 				display: flex;
 				align-items: center;
 				justify-content: center;
 				flex-grow: 1;
 
-				background: white;
+				background: rgb(40, 40, 40);
 				padding: 15px;
+			}
+
+			.banner {
+				width: 100%;
 			}
 
 			.hidden {
@@ -56,7 +79,7 @@
 
 			td, th {
 				padding: 5px 10px;
-				border: 1px solid black;
+				border: 1px solid white;
 			}
 
 			tr {
@@ -82,7 +105,7 @@
 			}
 
 			.live-now > div:not(:first-child) {
-				margin-top: 5px;
+				margin-top: 15px;
 			}
 
 			.live-badge {
@@ -97,33 +120,41 @@
 			}
 
 			.social img {
-				width: 64px;
-				height: 64px;
+				width: 50px;
+				height: 50px;
+			}
+
+			img.channel-icon {
+				width: 25px;
+				height: 25px;
 			}
 		</style>
     </head>
     <body>
-		<div class="status">
-			<div class="countdown">
-				<div class="clock">00:00:00</div>
-				<div>until the next stream.</div>
+		<img class="banner" src="banner.png" />
+		<div class="main">
+			<div class="status">
+				<div class="countdown">
+					<div>next stream in...</div>
+					<div class="clock">00:00:00</div>
+				</div>
+				<div class="live-now">
+					<div data-channel="main">The Great Berate's <a href="https://www.youtube.com/TheGreatBerate/live">YouTube channel</a> is <span class="live-badge">LIVE</span> now!</div>
+					<div data-channel="puppy">Silly Puppy's <a href="https://www.twitch.tv/SillyPuppy0218">Twitch channel</a> is <span class="live-badge">LIVE</span> now!</div>
+				</div>
 			</div>
-			<div class="live-now">
-				<div data-channel="main">The <a href="https://www.youtube.com/TheGreatBerate/live">main channel</a> is <span class="live-badge">LIVE</span> now!</div>
-				<div data-channel="puppy">Silly Puppy's <a href="https://www.twitch.tv/SillyPuppy0218">channel</a> is <span class="live-badge">LIVE</span> now!</div>
+			<div>
+				<table>
+					<tr><th>Day</th><th>Time</th><th>Crew</th><th>Channel</th><th>Game</th></tr>
+				</table>
 			</div>
+			<div class="social">
+				<a href="https://www.youtube.com/TheGreatBerate"><img src="icons/youtube.png"/></a>
+				<a href="https://www.twitch.tv/SillyPuppy0218"><img src="icons/twitch.png"/></a>
+				<a href="https://discord.gg/qRMNGGZ"><img src="icons/discord.png"/></a>
+			</div>
+			<div><i>All times are shown in <span class="timezone">PT</span>.</i></div>
 		</div>
-		<div>
-			<table>
-				<tr><th>Day</th><th>Time</th><th>Crew</th><th>Game</th></tr>
-			</table>
-		</div>
-		<div class="social">
-			<a href="https://www.youtube.com/TheGreatBerate"><img src="icons/youtube.png"/></a>
-			<a href="https://www.twitch.tv/SillyPuppy0218"><img src="icons/twitch.png"/></a>
-			<a href="https://discord.gg/qRMNGGZ"><img src="icons/discord.png"/></a>
-		</div>
-		<div><i>All times are shown in <span class="timezone">PT</span>.</i></div>
 		
 		<script>
 			const $ = selector => document.querySelector(selector);
@@ -138,76 +169,135 @@
 
 			fetch(scheduleURL)
 				.then(response => response.json())
-				.then(schedule => {
+				.then(scheduleJSON => {
+					const schedule = [];
 					const table = $("table tbody");
 
-					for (const row of schedule) {
+					const channels = {
+						main: {
+							url: "https://www.youtube.com/TheGreatBerate/live",
+							icon: "youtube"
+						},
+						puppy: {
+							url: "https://www.twitch.tv/SillyPuppy0218",
+							icon: "twitch"
+						},
+					}
+
+					for (const row of scheduleJSON) {
 						const rowElement = document.createElement("tr");
-						for (const cell of row) {
+						const i = 0;
+						for (const [index, cell] of row.entries()) {
+							if (index == 5)
+								continue;
+
 							const cellElement = document.createElement("td");
-							cellElement.textContent = cell;
+
+							if (index != 3) {
+								cellElement.textContent = cell;
+							} else {
+								const channel = channels[cell];
+
+								const icon = document.createElement("img");
+								icon.setAttribute("src", `icons/${channel.icon}.png`);
+								icon.classList.add("channel-icon");
+
+								const link = document.createElement("a");
+								link.setAttribute("href", channel.url);
+
+								link.append(icon);
+								cellElement.append(link);
+								cellElement.style.textAlign = "center";
+							}
+							
 							rowElement.append(cellElement);
 						}
 
 						table.append(rowElement);
+
+						const matches = /(\d{1,2}):00 ([AP]M)/.exec(row[1]);
+						if (matches == null)
+							continue;
+		
+						const hours = parseInt(matches[1]) + (matches[2] == "PM" && matches[1] !== "12" ? 12 : 0);
+		
+						schedule.push({
+							row: rowElement,
+							dayCell: rowElement.children[0],
+							hoursCell: rowElement.children[1],
+							time: moment().tz(row[5] || "America/Los_Angeles").day(row[0]).startOf("day").add(hours, "h").tz(timezone)
+						});
 					}
 
-					onScheduleLoaded();
+					onScheduleLoaded(schedule);
 				});
 
-			function onScheduleLoaded() {
-				const schedule = [];
-				for (const row of $$("table tr").splice(1)) {
-					const matches = /(\d{1,2}):00 ([AP]M)/.exec(row.children[1].textContent);
-					if (matches == null)
-						continue;
-	
-					const hours = parseInt(matches[1]) + (matches[2] == "PM" && matches[1] !== "12" ? 12 : 0);
-	
-					schedule.push({
-						row: row,
-						dayCell: row.children[0],
-						hoursCell: row.children[1],
-						time: moment().tz("America/Los_Angeles").day(row.children[0].textContent).startOf("day").add(hours, "h").tz(timezone)
-					});
+			function onScheduleLoaded(schedule) {
+				// Sort schedule by weekday
+				function sortSchedule() {
+					schedule.sort((a, b) => a.time.diff(b.time));
 				}
+				sortSchedule();
 	
+				// Update table text and fix row order
 				for (const event of schedule) {
 					event.dayCell.textContent = event.time.format("dddd");
 					event.hoursCell.textContent = event.time.format("h A");
 				}
-	
+
+				// Countdown
 				const countdown = $(".countdown");
 				const clock = $(".clock");
 				let currentEvent;
 				let anyoneLive = false;
 				function updateClock() {
-					if (anyoneLive)
-						return;
+					const previousEvent = currentEvent;
+					for (const event of schedule) {
+						const difference = event.time.diff(moment());
+						if (difference < 0) {
+							event.pastTime = event.time.clone();
+							event.time.day(event.time.day() + 7);
+
+							sortSchedule();
+						}
+					}
 
 					for (const event of schedule) {
 						const difference = event.time.diff(moment());
 						if (difference >= 0) {
+							if (anyoneLive)
+								break;
+
 							const duration = moment.duration(difference);
 							clock.textContent = [duration.hours(), duration.minutes(), duration.seconds()].map(number => number.toString().padStart(2, "0")).join(":");
 	
-							if (currentEvent != event) {
-								if (currentEvent != null) {
-									currentEvent.row.classList.remove("current");
-								}
-	
-								currentEvent = event;
-								currentEvent.row.classList.add("current");
-							}
-	
+							currentEvent = event;
 							break;
 						}
+					}
+
+					if (anyoneLive) {
+						for (const event of Array.from(schedule).reverse()) {
+							if (event.pastTime) {
+								currentEvent = event;
+								break;
+							}
+						}
+					}
+
+					if (currentEvent != previousEvent) {
+						if (previousEvent != null) {
+							previousEvent.row.classList.remove("current");
+						}
+
+						currentEvent.row.classList.add("current");
 					}
 				}
 	
 				setInterval(updateClock, 1000);
 				updateClock();
 
+				// Live status
 				const status = $(".status");
 				const channels = $$(".live-now > div");
 				function updateStatus() {
@@ -216,8 +306,8 @@
 						.then(statusJSON => {
 							anyoneLive = false;
 							for (const channelElement of channels) {
-								//channelElement.classList.toggle("live", statusJSON[channelElement.dataset.channel]);
-								//anyoneLive |= statusJSON[channelElement.dataset.channel];
+								channelElement.classList.toggle("live", statusJSON[channelElement.dataset.channel]);
+								anyoneLive |= statusJSON[channelElement.dataset.channel];
 							}
 
 							countdown.classList.toggle("hidden", anyoneLive);
