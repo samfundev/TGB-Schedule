@@ -36,6 +36,11 @@
 				color: #fa00ff;
 			}
 
+			a.image {
+				display: block;
+				line-height: 0;
+			}
+
 			.main {
 				margin: 10px;
 
@@ -73,6 +78,10 @@
 				font-size: 200%;
 			}
 
+			.video-link {
+				font-size: 70%;
+			}
+
 			table {
 				border-collapse: collapse;
 			}
@@ -87,7 +96,7 @@
 			}
 			
 			tr.current {
-				background: rgba(255, 255, 0, 0.5);
+				background: rgba(0, 127, 255, 0.5);
 			}
 
 			.live-now {
@@ -116,17 +125,52 @@
 			}
 
 			.social {
-				column-gap: 20px;
+				font-size: 150%;
+			}
+
+			.social a {
+				color: white;
+			}
+
+			.social > a:not(:first-child) {
+				margin-left: 20px;
 			}
 
 			.social img {
-				width: 50px;
-				height: 50px;
+				width: 2em;
+				height: 2em;
+				vertical-align: middle;
 			}
 
 			img.channel-icon {
-				width: 25px;
-				height: 25px;
+				width: 1.5em;
+				height: 1.5em;
+			}
+
+			body.stream-version {
+				background: linear-gradient(180deg, rgba(110, 0, 112, 1) 0%, rgba(110, 0, 112, 1) 17%, rgba(110, 0, 112, 0) 25%, rgba(110, 0, 112, 0) 100%);
+				font-size: 180%;
+			}
+
+			body.stream-version .main {
+				margin: 25px;
+
+				row-gap: 25px;
+
+				justify-self: center;
+				align-self: center;
+			}
+
+			body.stream-version .main div:first-child {
+				display: none;
+			}
+
+			body.stream-version .main div {
+				box-shadow: 5px 5px 10px 0px rgba(0, 0, 0, 0.25);
+			}
+
+			body.stream-version .social {
+				font-size: 100%;
 			}
 		</style>
     </head>
@@ -137,6 +181,7 @@
 				<div class="countdown">
 					<div>next stream in...</div>
 					<div class="clock">00:00:00</div>
+					<a class="video-link hidden" href="https://www.youtube.com/TheGreatBerate">While you're waiting, here's a random TGB video.</a>
 				</div>
 				<div class="live-now">
 					<div data-channel="main">The Great Berate's <a href="https://www.youtube.com/TheGreatBerate/live">YouTube channel</a> is <span class="live-badge">LIVE</span> now!</div>
@@ -149,27 +194,29 @@
 				</table>
 			</div>
 			<div class="social">
-				<a href="https://www.youtube.com/TheGreatBerate"><img src="icons/youtube.png"/></a>
-				<a href="https://www.twitch.tv/SillyPuppy0218"><img src="icons/twitch.png"/></a>
-				<a href="https://discord.gg/qRMNGGZ"><img src="icons/discord.png"/></a>
+				<a class="image" href="https://www.youtube.com/TheGreatBerate"><img src="icons/youtube.png"/>/TheGreatBerate</a>
+				<a class="image" href="https://www.twitch.tv/SillyPuppy0218"><img src="icons/twitch.png"/>/SillyPuppy0218</a>
+				<a class="image" href="https://discord.gg/qRMNGGZ"><img src="icons/discord.png"/>/qRMNGGZ</a>
 			</div>
-			<div><i>All times are shown in <span class="timezone">PT</span>.</i></div>
+			<div>
+				<i>All times are shown in <span class="timezone">PT</span>. Made by <a href="https://github.com/samfun123">samfun123</a>.</i>
+			</div>
 		</div>
 		
 		<script>
 			const $ = selector => document.querySelector(selector);
 			const $$ = selector => Array.from(document.querySelectorAll(selector));
 
-			const scheduleURL = "https://tgb-schedule-server.glitch.me/schedule";
+			const infoURL = "https://tgb-schedule-server.glitch.me/info";
 			const statusURL = "https://tgb-schedule-server.glitch.me/status";
 
 			const offset = new Date().getTimezoneOffset() / -60;
 			const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 			$(".timezone").textContent = `${timezone} (UTC${offset})`;
 
-			fetch(scheduleURL)
+			fetch(infoURL)
 				.then(response => response.json())
-				.then(scheduleJSON => {
+				.then(infoJSON => {
 					const schedule = [];
 					const table = $("table tbody");
 
@@ -182,9 +229,15 @@
 							url: "https://www.twitch.tv/SillyPuppy0218",
 							icon: "twitch"
 						},
+					};
+
+					const videoLink = $(".video-link");
+					if (infoJSON.video != null) {
+						videoLink.setAttribute("href", infoJSON.video);
+						videoLink.classList.remove("hidden");
 					}
 
-					for (const row of scheduleJSON) {
+					for (const row of infoJSON.schedule) {
 						const rowElement = document.createElement("tr");
 						const i = 0;
 						for (const [index, cell] of row.entries()) {
@@ -204,6 +257,7 @@
 
 								const link = document.createElement("a");
 								link.setAttribute("href", channel.url);
+								link.classList.add("image");
 
 								link.append(icon);
 								cellElement.append(link);
@@ -269,7 +323,7 @@
 								break;
 
 							const duration = moment.duration(difference);
-							clock.textContent = [duration.hours(), duration.minutes(), duration.seconds()].map(number => number.toString().padStart(2, "0")).join(":");
+							clock.textContent = [Math.floor(duration.asHours()), duration.minutes(), duration.seconds()].map(number => number.toString().padStart(2, "0")).join(":");
 	
 							currentEvent = event;
 							break;
@@ -316,6 +370,11 @@
 
 				setInterval(updateStatus, 60 * 1000);
 				updateStatus();
+
+				// Stream version
+				if (location.hash == "#stream") {
+					document.body.classList.add("stream-version");
+				}
 			}
 		</script>
     </body>
