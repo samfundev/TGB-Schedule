@@ -37,8 +37,12 @@
 			}
 
 			a.image {
-				display: block;
+				display: inline-block;
 				line-height: 0;
+			}
+
+			a.image:not(:first-child) {
+				margin-left: 0.5em;
 			}
 
 			.main {
@@ -267,18 +271,20 @@
 							if (index != 3) {
 								cellElement.textContent = cell;
 							} else {
-								const channel = channels[cell];
+								for (const split of cell.split(/, ?/g)) {
+									const channel = channels[split];
 
-								const icon = document.createElement("img");
-								icon.setAttribute("src", `icons/${channel.icon}.png`);
-								icon.classList.add("channel-icon");
+									const icon = document.createElement("img");
+									icon.setAttribute("src", `icons/${channel.icon}.png`);
+									icon.classList.add("channel-icon");
 
-								const link = document.createElement("a");
-								link.setAttribute("href", channel.url);
-								link.classList.add("image");
+									const link = document.createElement("a");
+									link.setAttribute("href", channel.url);
+									link.classList.add("image");
 
-								link.append(icon);
-								cellElement.append(link);
+									link.append(icon);
+									cellElement.append(link);
+								}
 								cellElement.style.textAlign = "center";
 							}
 							
