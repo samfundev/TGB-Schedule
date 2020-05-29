@@ -63,7 +63,7 @@
 			}
 
 			.hidden {
-				display: none;
+				display: none !important;
 			}
 
 			.status {
@@ -147,12 +147,13 @@
 				height: 1.5em;
 			}
 
-			body.stream-version {
+			/* Stream version */
+			.stream-version {
 				background: linear-gradient(180deg, rgba(110, 0, 112, 1) 0%, rgba(110, 0, 112, 1) 17%, rgba(110, 0, 112, 0) 25%, rgba(110, 0, 112, 0) 100%);
 				font-size: 180%;
 			}
 
-			body.stream-version .main {
+			.stream-version .main {
 				margin: 25px;
 
 				row-gap: 25px;
@@ -161,16 +162,33 @@
 				align-self: center;
 			}
 
-			body.stream-version .main div:first-child {
+			.stream-version .main div:first-child {
 				display: none;
 			}
 
-			body.stream-version .main div {
+			.stream-version .main div {
 				box-shadow: 5px 5px 10px 0px rgba(0, 0, 0, 0.25);
 			}
 
-			body.stream-version .social {
+			.stream-version .social {
 				font-size: 100%;
+			}
+
+			/* Image version */
+			.image-version .main div:nth-child(3) {
+				font-size: 180%;
+			}
+
+			.image-version .main div:not(:nth-child(3)) {
+				font-size: 150%;
+			}
+
+			.image-version .status {
+				display: none;
+			}
+
+			.image-version .current {
+				background: none;
 			}
 		</style>
     </head>
@@ -371,10 +389,8 @@
 				setInterval(updateStatus, 60 * 1000);
 				updateStatus();
 
-				// Stream version
-				if (location.hash == "#stream") {
-					document.body.classList.add("stream-version");
-				}
+				// Versions
+				document.body.classList.add(`${location.hash.substr(1)}-version`);
 			}
 		</script>
     </body>
