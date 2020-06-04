@@ -296,11 +296,11 @@
 
 						table.append(rowElement);
 
-						const matches = /(\d{1,2}):00 ([AP]M)/.exec(row[1]);
+						const matches = /(\d{1,2}):(\d{2}) ([AP]M)/.exec(row[1]);
 						if (matches == null)
 							continue;
 		
-						const hours = parseInt(matches[1]) + (matches[2] == "PM" && matches[1] !== "12" ? 12 : 0);
+						const hours = parseInt(matches[1]) + (matches[3] == "PM" && matches[1] !== "12" ? 12 : 0) + parseInt(matches[2]) / 60;
 		
 						schedule.push({
 							row: rowElement,
@@ -323,7 +323,7 @@
 				// Update table text and fix row order
 				for (const event of schedule) {
 					event.dayCell.textContent = event.time.format("dddd");
-					event.hoursCell.textContent = event.time.format("h A");
+					event.hoursCell.textContent = event.time.format("h:mm A");
 				}
 
 				// Countdown
