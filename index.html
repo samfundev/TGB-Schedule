@@ -154,7 +154,7 @@
 			/* Stream version */
 			.stream-version {
 				background: linear-gradient(180deg, rgba(110, 0, 112, 1) 0%, rgba(110, 0, 112, 1) 17%, rgba(110, 0, 112, 0) 25%, rgba(110, 0, 112, 0) 100%);
-				font-size: 180%;
+				font-size: 175%;
 			}
 
 			.stream-version .main {
@@ -268,7 +268,7 @@
 								cellElement.textContent = cell;
 							} else {
 								for (const split of cell.split(/, ?/g)) {
-									const url = channels[split] ?? split;
+									const url = channels[split] || split;
 									let iconName = "link";
 									for (const [name, regex] of Object.entries(icons)) {
 										if (regex.test(url)) {
