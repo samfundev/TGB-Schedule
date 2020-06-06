@@ -10,9 +10,12 @@
 		<style>
 			@font-face {
 				font-family: 'Bahnschrift';
-				font-style: normal;
-				font-weight: normal;
 				src: local('Bahnschrift'), url('bahnschrift.ttf') format('ttf');
+			}
+			
+			/* This fixes the font being bolder on Firefox. I don't know why. */
+			html {
+				font-weight: lighter;
 			}
 
 			html, body {
