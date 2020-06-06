@@ -273,6 +273,22 @@
 						"youtube": /youtube\.com/,
 					};
 
+					const tags = {
+						"~~": "s",
+						"__": "u",
+						"**": "b",
+						"*": "i"
+					};
+
+					function parseTags(text) {
+						for (const [tag, element] of Object.entries(tags)) {
+							const escapedTag = tag.replace(/(.)/g, "\\$1");
+							text = text.replace(new RegExp(`${escapedTag}(.+?)${escapedTag}`, "g"), `<${element}>$1</${element}>`);
+						}
+
+						return text;
+					}
+
 					for (const row of scheduleInfo) {
 						const rowElement = document.createElement("tr");
 						const i = 0;
@@ -282,9 +298,9 @@
 
 							const cellElement = document.createElement("td");
 
-							if (index != 3) {
-								cellElement.textContent = cell;
-							} else {
+							if (index == 4) {
+								cellElement.innerHTML = parseTags(cell);
+							} else if (index == 3) {
 								for (const split of cell.split(/, ?/g)) {
 									const url = channels[split] || split;
 
@@ -316,6 +332,8 @@
 									cellElement.append(link);
 								}
 								cellElement.style.textAlign = "center";
+							} else {
+								cellElement.textContent = cell;
 							}
 							
 							rowElement.append(cellElement);
