@@ -151,6 +151,12 @@
 				height: 1.5em;
 			}
 
+			.raw-text {
+				color: lightcoral;
+				margin: .35em 0;
+				font-weight: bold;
+			}
+
 			/* Stream version */
 			.stream-version {
 				background: linear-gradient(180deg, rgba(110, 0, 112, 1) 0%, rgba(110, 0, 112, 1) 17%, rgba(110, 0, 112, 0) 25%, rgba(110, 0, 112, 0) 100%);
@@ -236,6 +242,15 @@
 			const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 			$(".timezone").textContent = `${timezone} (UTC${offset})`;
 
+			function isURL(text) {
+				try {
+					new URL(text);
+					return true;
+				} catch (exception) {
+					return false;
+				}
+			}
+
 			fetch(scheduleURL)
 				.then(response => response.json())
 				.then(scheduleInfo => {
@@ -269,6 +284,15 @@
 							} else {
 								for (const split of cell.split(/, ?/g)) {
 									const url = channels[split] || split;
+
+									if (!isURL(url)) {
+										const rawText = document.createElement("div");
+										rawText.classList.add("raw-text");
+										rawText.append(url);
+										cellElement.append(rawText)
+										break;
+									}
+
 									let iconName = "link";
 									for (const [name, regex] of Object.entries(icons)) {
 										if (regex.test(url)) {
