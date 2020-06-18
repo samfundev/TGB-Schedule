@@ -5,7 +5,7 @@
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
 		<title>The Great Berate Schedule</title>
 		<link rel="shortcut icon" href="favicon.png" type="image/png">
-		<script src="moment.js"></script>
+		<script src="moment-with-locales.js"></script>
 		<script src="moment-timezone.js"></script>
 		<style>
 			@font-face {
@@ -160,6 +160,17 @@
 				font-weight: bold;
 			}
 
+			.time-format {
+				background: none;
+				border: none;
+				padding: 0;
+				color: inherit;
+				font: inherit;
+
+				text-decoration: underline #fa00ff;
+				cursor: pointer;
+			}
+
 			/* Stream version */
 			.stream-version {
 				background: linear-gradient(180deg, rgba(110, 0, 112, 1) 0%, rgba(110, 0, 112, 1) 17%, rgba(110, 0, 112, 0) 25%, rgba(110, 0, 112, 0) 100%);
@@ -203,11 +214,24 @@
 			.image-version .current {
 				background: none;
 			}
+
+			/* Loading */
+			div.main.loading > div:not(:last-child) {
+				display: none;
+			}
+			
+			div.main.loading > div:last-child {
+				font-size: 300%;
+			}
+
+			div.main:not(.loading) > div:last-child {
+				display: none;
+			}
 		</style>
     </head>
     <body>
 		<img class="banner" src="banner.png" />
-		<div class="main">
+		<div class="main loading">
 			<div class="status">
 				<div class="countdown">
 					<div>next stream in...</div>
@@ -230,8 +254,9 @@
 				<a class="image" href="https://discord.gg/qRMNGGZ"><img src="icons/discord.png"/>/qRMNGGZ</a>
 			</div>
 			<div>
-				<i>All times are shown in <span class="timezone">PT</span>. Made by <a href="https://github.com/samfun123">samfun123</a>.</i>
+				<i>All times are shown in <span class="timezone">PT</span>. Time in <button class="time-format">local</button> format. Made by <a href="https://github.com/samfun123">samfun123</a>.</i>
 			</div>
+			<div>Loading...</div>
 		</div>
 		
 		<script>
@@ -241,9 +266,9 @@
 			const scheduleURL = "https://tgb-schedule-server.glitch.me/schedule";
 			const statusURL = "https://tgb-schedule-server.glitch.me/status";
 
-			const offset = new Date().getTimezoneOffset() / -60;
 			const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-			$(".timezone").textContent = `${timezone} (UTC${offset})`;
+			const offset = moment().tz(timezone).utcOffset() / 60;
+			$(".timezone").textContent = `${timezone} (UTC${offset >= 0 ? "+" : ""}${offset})`;
 
 			function isURL(text) {
 				try {
@@ -290,9 +315,26 @@
 					}
 
 					for (const row of scheduleInfo) {
+						const matches = /(\d{1,2}):(\d{2}) ([AP]M)/.exec(row[1].toUpperCase());
+						if (matches == null)
+							continue;
+		
+						const hours = parseInt(matches[1]) + (matches[3] == "PM" && matches[1] !== "12" ? 12 : 0) + parseInt(matches[2]) / 60;
+		
+						schedule.push({
+							row: null,
+							dayCell: null,
+							hoursCell: null,
+							entries: row.entries(),
+							time: moment().tz(row[5] || "America/Los_Angeles").day(row[0]).startOf("day").add(hours, "h").tz(timezone).locale(navigator.language)
+						});
+					}
+
+					schedule.sort((a, b) => a.time.diff(b.time));
+
+					for (const event of schedule) {
 						const rowElement = document.createElement("tr");
-						const i = 0;
-						for (const [index, cell] of row.entries()) {
+						for (const [index, cell] of event.entries) {
 							if (index == 5)
 								continue;
 
@@ -341,34 +383,41 @@
 
 						table.append(rowElement);
 
-						const matches = /(\d{1,2}):(\d{2}) ([AP]M)/.exec(row[1].toUpperCase());
-						if (matches == null)
-							continue;
-		
-						const hours = parseInt(matches[1]) + (matches[3] == "PM" && matches[1] !== "12" ? 12 : 0) + parseInt(matches[2]) / 60;
-		
-						schedule.push({
-							row: rowElement,
-							dayCell: rowElement.children[0],
-							hoursCell: rowElement.children[1],
-							time: moment().tz(row[5] || "America/Los_Angeles").day(row[0]).startOf("day").add(hours, "h").tz(timezone)
-						});
+						event.row = rowElement;
+						event.dayCell = rowElement.children[0];
+						event.hoursCell = rowElement.children[1];
 					}
 
 					onScheduleLoaded(schedule);
 				});
 
 			function onScheduleLoaded(schedule) {
-				// Sort schedule by weekday
-				function sortSchedule() {
-					schedule.sort((a, b) => a.time.diff(b.time));
+				// Time formats
+				const formats = ["LT", "h:mm A", "H:mm"];
+				const formatNames = ["local", "12-hour", "24-hour"];
+				let format = localStorage.getItem("timeformat") || 0;
+				const formatElement = $(".time-format")
+				formatElement.addEventListener("click", () => {
+					format++;
+					format %= 3;
+
+					localStorage.setItem("timeformat", format);
+					updateFormat();
+				});
+
+				function updateFormat() {
+					formatElement.textContent = `${formatNames[format]} clock`;
+
+					for (const event of schedule) {
+						event.hoursCell.textContent = event.time.format(formats[format]);
+					}
 				}
-				sortSchedule();
+
+				updateFormat();
 	
 				// Update table text and fix row order
 				for (const event of schedule) {
 					event.dayCell.textContent = event.time.format("dddd");
-					event.hoursCell.textContent = event.time.format("h:mm A");
 				}
 
 				// Countdown
@@ -384,7 +433,7 @@
 							event.pastTime = event.time.clone();
 							event.time.day(event.time.day() + 7);
 
-							sortSchedule();
+							schedule.sort((a, b) => a.time.diff(b.time));
 						}
 					}
 
@@ -444,7 +493,10 @@
 				updateStatus();
 
 				// Versions
-				document.body.classList.add(`${location.hash.substr(1)}-version`);
+				if (location.hash != "#")
+					document.body.classList.add(`${location.hash.substr(1)}-version`);
+
+				$(".main").classList.remove("loading");	
 			}
 		</script>
     </body>
