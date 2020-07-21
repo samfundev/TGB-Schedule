@@ -316,17 +316,24 @@
 
 					for (const row of scheduleInfo) {
 						const matches = /(\d{1,2}):(\d{2}) ([AP]M)/.exec(row[1].toUpperCase());
-						if (matches == null)
-							continue;
-		
-						const hours = parseInt(matches[1]) + (matches[3] == "PM" && matches[1] !== "12" ? 12 : 0) + parseInt(matches[2]) / 60;
+
+						let hours;
+						let skipped = false;
+						if (matches != null)
+							hours = parseInt(matches[1]) + (matches[3] == "PM" && matches[1] !== "12" ? 12 : 0) + parseInt(matches[2]) / 60
+						else
+						{
+							hours = 0;
+							skipped = true;
+						}
 		
 						schedule.push({
 							row: null,
 							dayCell: null,
 							hoursCell: null,
 							entries: row.entries(),
-							time: moment().tz(row[5] || "America/Los_Angeles").day(row[0]).startOf("day").add(hours, "h").tz(timezone).locale(navigator.language)
+							time: moment().tz(row[5] || "America/Los_Angeles").day(row[0]).startOf("day").add(hours, "h").tz(timezone).locale(navigator.language),
+							skipped: skipped
 						});
 					}
 
@@ -409,6 +416,9 @@
 					formatElement.textContent = `${formatNames[format]} clock`;
 
 					for (const event of schedule) {
+						if (event.skipped)
+							continue;
+
 						event.hoursCell.textContent = event.time.format(formats[format]);
 					}
 				}
@@ -438,6 +448,9 @@
 					}
 
 					for (const event of schedule) {
+						if (event.skipped)
+							continue;
+
 						const difference = event.time.diff(moment());
 						if (difference >= 0) {
 							if (anyoneLive)
@@ -453,7 +466,7 @@
 
 					if (anyoneLive) {
 						for (const event of Array.from(schedule).reverse()) {
-							if (event.pastTime) {
+							if (event.pastTime && !event.skipped) {
 								currentEvent = event;
 								break;
 							}
