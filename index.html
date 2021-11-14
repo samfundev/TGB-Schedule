@@ -5,8 +5,7 @@
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
 		<title>The Great Berate Schedule</title>
 		<link rel="shortcut icon" href="favicon.png" type="image/png">
-		<script src="moment-with-locales.min.js"></script>
-		<script src="moment-timezone.min.js"></script>
+		<script src="luxon.min.js"></script>
 		<style>
 			@font-face {
 				font-family: 'Bahnschrift';
@@ -262,13 +261,14 @@
 		<script>
 			const $ = selector => document.querySelector(selector);
 			const $$ = selector => Array.from(document.querySelectorAll(selector));
+			const DateTime = luxon.DateTime;
 
 			const scheduleURL = "https://tgb-schedule-server.glitch.me/schedule";
 			const statusURL = "https://tgb-schedule-server.glitch.me/status";
 
 			const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-			const offset = moment().tz(timezone).utcOffset() / 60;
-			$(".timezone").textContent = `${timezone} (UTC${offset >= 0 ? "+" : ""}${offset})`;
+			const offset = DateTime.now().offset / 60;
+			$(".timezone").textContent = `${DateTime.now().offsetNameLong} (UTC${offset >= 0 ? "+" : ""}${offset})`;
 
 			function isURL(text) {
 				try {
@@ -305,6 +305,8 @@
 						"*": "i"
 					};
 
+					const weekdays = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+
 					function parseTags(text) {
 						for (const [tag, element] of Object.entries(tags)) {
 							const escapedTag = tag.replace(/(.)/g, "\\$1");
@@ -332,12 +334,12 @@
 							dayCell: null,
 							hoursCell: null,
 							entries: row.entries(),
-							time: moment().tz(row[5] || "America/Los_Angeles").day(row[0]).startOf("day").add(hours, "h").tz(timezone).locale(navigator.language),
+							time: DateTime.now().setZone(row[5] || "America/Los_Angeles").set({ weekday: weekdays.indexOf(row[0]) + 1 }).startOf("day").plus({ hours }).setZone(timezone),
 							skipped: skipped
 						});
 					}
 
-					schedule.sort((a, b) => a.time.diff(b.time));
+					schedule.sort((a, b) => a.time.toMillis() - b.time.toMillis());
 
 					for (const event of schedule) {
 						const rowElement = document.createElement("tr");
@@ -400,7 +402,7 @@
 
 			function onScheduleLoaded(schedule) {
 				// Time formats
-				const formats = ["LT", "h:mm A", "H:mm"];
+				const formats = ["t", "h:mm a", "H:mm"];
 				const formatNames = ["local", "12-hour", "24-hour"];
 				let format = localStorage.getItem("timeformat") || 0;
 				const formatElement = $(".time-format")
@@ -419,7 +421,7 @@
 						if (event.skipped)
 							continue;
 
-						event.hoursCell.textContent = event.time.format(formats[format]);
+						event.hoursCell.textContent = event.time.toFormat(formats[format]);
 					}
 				}
 
@@ -427,7 +429,7 @@
 	
 				// Update table text and fix row order
 				for (const event of schedule) {
-					event.dayCell.textContent = event.time.format("dddd");
+					event.dayCell.textContent = event.time.toLocaleString({ weekday: "long" });
 				}
 
 				// Countdown
@@ -438,12 +440,12 @@
 				function updateClock() {
 					const previousEvent = currentEvent;
 					for (const event of schedule) {
-						const difference = event.time.diff(moment());
+						const difference = event.time.diffNow().milliseconds;
 						if (difference < 0) {
-							event.pastTime = event.time.clone();
-							event.time.day(event.time.day() + 7);
+							event.pastTime = event.time;
+							event.time = event.time.plus({ week: 1 });
 
-							schedule.sort((a, b) => a.time.diff(b.time));
+							schedule.sort((a, b) => a.time.toMillis() - b.time.toMillis());
 						}
 					}
 
@@ -451,13 +453,12 @@
 						if (event.skipped)
 							continue;
 
-						const difference = event.time.diff(moment());
-						if (difference >= 0) {
+						const duration = event.time.diffNow();
+						if (duration.milliseconds >= 0) {
 							if (anyoneLive)
 								break;
 
-							const duration = moment.duration(difference);
-							clock.textContent = [Math.floor(duration.asHours()), duration.minutes(), duration.seconds()].map(number => number.toString().padStart(2, "0")).join(":");
+							clock.textContent = duration.toFormat("hh:mm:ss");
 	
 							currentEvent = event;
 							break;
