@@ -235,7 +235,7 @@
 				<div class="countdown">
 					<div>next stream in...</div>
 					<div class="clock">00:00:00</div>
-					<a class="video-link" href="https://tgb-schedule-server.glitch.me/video">While you're waiting, here's a random TGB video.</a>
+					<a class="video-link" href="https://tgb.samfun.dev/video">While you're waiting, here's a random TGB video.</a>
 				</div>
 				<div class="live-now">
 					<div data-channel="main">The Great Berate's <a href="https://www.youtube.com/TheGreatBerate/live">YouTube channel</a> is <span class="live-badge">LIVE</span> now!</div>
@@ -264,8 +264,8 @@
 			const $$ = selector => Array.from(document.querySelectorAll(selector));
 			const DateTime = luxon.DateTime;
 
-			const scheduleURL = "https://tgb-schedule-server.glitch.me/schedule";
-			const statusURL = "https://tgb-schedule-server.glitch.me/status";
+			const scheduleURL = "https://tgb.samfun.dev/schedule";
+			const statusURL = "https://tgb.samfun.dev/status";
 
 			const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 			const offset = DateTime.now().offset / 60;
